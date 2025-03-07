@@ -4,54 +4,11 @@ import (
 	"context"
 	"time"
 
-	"cosmossdk.io/x/evidence"
-	feegrantmodule "cosmossdk.io/x/feegrant/module"
-	nftmodule "cosmossdk.io/x/nft/module"
-	"cosmossdk.io/x/upgrade"
-	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
-	adminTypes "github.com/cosmos/admin-module/v2/x/adminmodule/types"
-	"github.com/cosmos/cosmos-sdk/codec"
-	cdc "github.com/cosmos/cosmos-sdk/codec/types"
-	cryptocodec "github.com/cosmos/cosmos-sdk/crypto/codec"
-	"github.com/cosmos/cosmos-sdk/std"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/types/module"
-	"github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/cosmos/cosmos-sdk/x/auth/vesting"
-	authzmodule "github.com/cosmos/cosmos-sdk/x/authz/module"
-	"github.com/cosmos/cosmos-sdk/x/bank"
-	"github.com/cosmos/cosmos-sdk/x/consensus"
-	"github.com/cosmos/cosmos-sdk/x/crisis"
-	"github.com/cosmos/cosmos-sdk/x/distribution"
-	"github.com/cosmos/cosmos-sdk/x/genutil"
-	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
-	"github.com/cosmos/cosmos-sdk/x/gov"
-	groupmodule "github.com/cosmos/cosmos-sdk/x/group/module"
-	"github.com/cosmos/cosmos-sdk/x/mint"
-	"github.com/cosmos/cosmos-sdk/x/params"
-	"github.com/cosmos/cosmos-sdk/x/slashing"
-	"github.com/cosmos/cosmos-sdk/x/staking"
-	"github.com/cosmos/ibc-go/modules/capability"
-	ibcaccounts "github.com/cosmos/ibc-go/v8/modules/apps/27-interchain-accounts"
-	ibcfee "github.com/cosmos/ibc-go/v8/modules/apps/29-fee"
-	ibctransfertypes "github.com/cosmos/ibc-go/v8/modules/apps/transfer/types"
-	ibccore "github.com/cosmos/ibc-go/v8/modules/core"
-	ibclightclient "github.com/cosmos/ibc-go/v8/modules/light-clients/07-tendermint"
-	interchainprovider "github.com/cosmos/interchain-security/v5/x/ccv/provider"
-	contractmanagertypes "github.com/neutron-org/neutron/v4/x/contractmanager/types"
-	neutroncrontypes "github.com/neutron-org/neutron/v4/x/cron/types"
-	neutrondextypes "github.com/neutron-org/neutron/v4/x/dex/types"
-	neutronfeeburnertypes "github.com/neutron-org/neutron/v4/x/feeburner/types"
-	neutronfeerefundertypes "github.com/neutron-org/neutron/v4/x/feerefunder/types"
-	neutroninterchainqueriestypes "github.com/neutron-org/neutron/v4/x/interchainqueries/types"
-	neutroninterchaintxstypes "github.com/neutron-org/neutron/v4/x/interchaintxs/types"
-	neutrontokenfactorytypes "github.com/neutron-org/neutron/v4/x/tokenfactory/types"
-	neutrontransfertypes "github.com/neutron-org/neutron/v4/x/transfer/types"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/rs/zerolog"
-	blocksdktypes "github.com/skip-mev/block-sdk/x/auction/types"
 
 	"github.com/bro-n-bro/spacebox-crawler/v2/adapter/storage"
 	"github.com/bro-n-bro/spacebox-crawler/v2/adapter/storage/model"
@@ -65,6 +22,7 @@ import (
 	healthchecker "github.com/bro-n-bro/spacebox-crawler/v2/pkg/health_checker"
 	ts "github.com/bro-n-bro/spacebox-crawler/v2/pkg/mapper/to_storage"
 	"github.com/bro-n-bro/spacebox-crawler/v2/pkg/worker"
+	neutronapp "github.com/neutron-org/neutron/v5/app"
 )
 
 const (
@@ -112,7 +70,7 @@ func (a *App) Start(ctx context.Context) error {
 	}
 
 	var (
-		cod     = MakeEncodingConfig()
+		cod     = neutronapp.MakeEncodingConfig().Marshaler
 		sto     = storage.New(a.cfg.StorageConfig, *a.log)
 		rpcCli  = rpcClient.New(a.cfg.RPCConfig)
 		grpcCli = grpcClient.New(a.cfg.GRPCConfig, *a.log, sto)
@@ -205,63 +163,6 @@ func (a *App) Stop(ctx context.Context) error {
 
 func (a *App) GetStartTimeout() time.Duration { return a.cfg.StartTimeout }
 func (a *App) GetStopTimeout() time.Duration  { return a.cfg.StopTimeout }
-
-// MakeEncodingConfig creates an EncodingConfig to properly handle and marshal all messages
-func MakeEncodingConfig() codec.Codec {
-	var (
-		registry     = cdc.NewInterfaceRegistry()
-		basicManager = module.NewBasicManager(
-			auth.AppModuleBasic{},
-			genutil.NewAppModuleBasic(genutiltypes.DefaultMessageValidator),
-			bank.AppModuleBasic{},
-			capability.AppModuleBasic{},
-			staking.AppModuleBasic{},
-			mint.AppModuleBasic{},
-			distribution.AppModuleBasic{},
-			params.AppModuleBasic{},
-			crisis.AppModuleBasic{},
-			slashing.AppModuleBasic{},
-			feegrantmodule.AppModuleBasic{},
-			upgrade.AppModuleBasic{},
-			evidence.AppModuleBasic{},
-			authzmodule.AppModuleBasic{},
-			groupmodule.AppModuleBasic{},
-			vesting.AppModuleBasic{},
-			nftmodule.AppModuleBasic{},
-			consensus.AppModuleBasic{},
-			ibccore.AppModuleBasic{},
-			ibcfee.AppModuleBasic{},
-			ibcaccounts.AppModuleBasic{},
-			ibclightclient.AppModuleBasic{},
-			interchainprovider.AppModuleBasic{},
-			gov.AppModuleBasic{},
-		)
-	)
-
-	// neutron
-	adminTypes.RegisterInterfaces(registry)
-	contractmanagertypes.RegisterInterfaces(registry)
-	neutroncrontypes.RegisterInterfaces(registry)
-	neutrondextypes.RegisterInterfaces(registry)
-	neutronfeeburnertypes.RegisterInterfaces(registry)
-	neutronfeerefundertypes.RegisterInterfaces(registry)
-	neutroninterchainqueriestypes.RegisterInterfaces(registry)
-	neutroninterchaintxstypes.RegisterInterfaces(registry)
-	neutrontokenfactorytypes.RegisterInterfaces(registry)
-	neutrontransfertypes.RegisterInterfaces(registry)
-	blocksdktypes.RegisterInterfaces(registry)
-
-	wasmtypes.RegisterInterfaces(registry)
-
-	//
-	basicManager.RegisterInterfaces(registry)
-	std.RegisterInterfaces(registry)
-	ibctransfertypes.RegisterInterfaces(registry)
-	cryptocodec.RegisterInterfaces(registry)
-	// liquiditytypes.RegisterInterfaces(registry)
-
-	return codec.NewProtoCodec(registry)
-}
 
 // MakeSDKConfig represents a handy implementation of SdkConfigSetup that simply setups the prefix
 // inside the configuration
