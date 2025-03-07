@@ -9,8 +9,8 @@ WORKDIR /go/src/github.com/spacebox-crawler
 COPY . ./
 
 
-ADD https://github.com/CosmWasm/wasmvm/releases/download/v2.1.2/libwasmvm_muslc.x86_64.a /lib/libwasmvm_muslc.x86_64.a
-RUN sha256sum /lib/libwasmvm_muslc.x86_64.a | grep 58e1f6bfa89ee390cb9abc69a5bc126029a497fe09dd399f38a82d0d86fe95ef
+ADD https://github.com/CosmWasm/wasmvm/releases/download/v2.1.5/libwasmvm_muslc.x86_64.a /lib/libwasmvm_muslc.x86_64.a
+RUN sha256sum /lib/libwasmvm_muslc.x86_64.a | grep c6612d17d82b0997696f1076f6d894e339241482570b9142f29b0d8f21b280bf
 
 # Copy the library to both locations that the linker checks
 RUN cp /lib/libwasmvm_muslc.x86_64.a /lib/libwasmvm_muslc.a && \
